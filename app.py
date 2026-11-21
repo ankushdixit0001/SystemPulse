@@ -1,24 +1,59 @@
-"""SystemPulse: a small, read-only system monitoring dashboard."""
+"""SystemPulse local monitor API.
+
+Run this process on the computer you want to monitor. It binds to loopback only,
+so it is not exposed to your LAN or the public internet.
+"""
 from datetime import datetime, timezone
+import os
 import platform
 import socket
 import time
 
 import psutil
-from flask import Flask, jsonify, render_template
+from flask import Flask, jsonify, request, render_template
 
 app = Flask(__name__)
 BOOT_TIME = psutil.boot_time()
+# Prime psutil's non-blocking CPU sampler so the first reading is meaningful.
+psutil.cpu_percent(interval=None)
+
+DEFAULT_ALLOWED_ORIGINS = {
+    "https://systempulse-mocha.vercel.app",
+    "http://127.0.0.1:5000",
+    "http://localhost:5000",
+}
+ALLOWED_ORIGINS = DEFAULT_ALLOWED_ORIGINS | {
+    origin.strip().rstrip("/")
+    for origin in os.environ.get("SYSTEMPULSE_ALLOWED_ORIGINS", "").split(",")
+    if origin.strip()
+}
+
+
+@app.after_request
+def add_local_api_headers(response):
+    origin = request.headers.get("Origin", "").rstrip("/")
+    if origin in ALLOWED_ORIGINS:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Vary"] = "Origin"
+        response.headers["Access-Control-Allow-Methods"] = "GET, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+        # Required by Chromium when a public HTTPS page accesses loopback.
+        if request.headers.get("Access-Control-Request-Private-Network") == "true":
+            response.headers["Access-Control-Allow-Private-Network"] = "true"
+    response.headers["Cache-Control"] = "no-store"
+    return response
 
 
 def system_stats():
     memory = psutil.virtual_memory()
-    partitions = psutil.disk_partitions()
     if platform.system() == "Windows":
-        disk_path = next((p.mountpoint for p in partitions if p.fstype), "C:\\")
+        disk_path = os.environ.get("SystemDrive", "C:") + "\\"
     else:
         disk_path = "/"
-    disk = psutil.disk_usage(disk_path)
+    try:
+        disk = psutil.disk_usage(disk_path)
+    except (OSError, PermissionError):
+        disk = psutil.disk_usage("/")
     return {
         "cpu_percent": psutil.cpu_percent(interval=None),
         "memory_percent": memory.percent,
@@ -57,6 +92,16 @@ def index():
     return render_template("index.html")
 
 
+@app.get("/api/health")
+def api_health():
+    return jsonify({
+        "status": "online",
+        "hostname": socket.gethostname(),
+        "os": f"{platform.system()} {platform.release()}",
+        "agent": "SystemPulse local monitor",
+    })
+
+
 @app.get("/api/system")
 def api_system():
     return jsonify(system_stats())
@@ -78,5 +123,8 @@ def api_performance():
 
 
 if __name__ == "__main__":
-    # Local-only by default: do not expose system information to the network.
-    app.run(host="127.0.0.1", port=5000, debug=False)
+    # Loopback-only: the monitor is intentionally not reachable from other devices.
+    print("\nSystemPulse local monitor is starting...")
+    print("Open the Vercel dashboard after this server is running.")
+    print("Local health check: http://127.0.0.1:5000/api/health")
+    app.run(host="127.0.0.1", port=5000, debug=False, threaded=True)
