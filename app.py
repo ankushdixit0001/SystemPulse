@@ -19,6 +19,8 @@ psutil.cpu_percent(interval=None)
 
 DEFAULT_ALLOWED_ORIGINS = {
     "https://systempulse-mocha.vercel.app",
+    "https://systempulse-ankushs-projects-72be89bb.vercel.app",
+    "https://systempulse-git-main-ankushs-projects-72be89bb.vercel.app",
     "http://127.0.0.1:5000",
     "http://localhost:5000",
 }
@@ -36,7 +38,7 @@ def add_local_api_headers(response):
         response.headers["Access-Control-Allow-Origin"] = origin
         response.headers["Vary"] = "Origin"
         response.headers["Access-Control-Allow-Methods"] = "GET, OPTIONS"
-        response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Cache-Control, Pragma"
         # Required by Chromium when a public HTTPS page accesses loopback.
         if request.headers.get("Access-Control-Request-Private-Network") == "true":
             response.headers["Access-Control-Allow-Private-Network"] = "true"
