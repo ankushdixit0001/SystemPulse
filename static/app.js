@@ -2,6 +2,7 @@ const $ = (id) => document.getElementById(id);
 const history = { labels: [], cpu: [], memory: [] };
 let chart;
 let latestProcesses = [];
+let refreshInProgress = false;
 
 // The dashboard is hosted on Vercel, but measurements must come from this
 // computer. Never fall back to the Vercel server's own /api endpoints.
@@ -60,7 +61,8 @@ async function getJSON(path) {
   const response = await fetch(`${API_BASE}${path}`, {
     cache: "no-store",
     mode: "cors",
-    credentials: "omit"
+    credentials: "omit",
+    signal: AbortSignal.timeout(2500)
   });
   if (!response.ok) throw new Error(`Local monitor returned HTTP ${response.status} for ${path}`);
   return response.json();
@@ -119,6 +121,8 @@ async function updateProcesses() {
   renderProcesses(latestProcesses);
 }
 async function refresh() {
+  if (refreshInProgress) return;
+  refreshInProgress = true;
   try {
     const health = await getJSON("/api/health");
     await Promise.all([updateSystem(), updatePerformance(), updateProcesses()]);
@@ -126,6 +130,8 @@ async function refresh() {
   } catch (error) {
     setConnection(false, "Local monitor disconnected");
     console.warn("SystemPulse could not reach the local monitor:", error);
+  } finally {
+    refreshInProgress = false;
   }
 }
 
