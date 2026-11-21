@@ -20,7 +20,9 @@ A cross-platform system monitoring dashboard for **your actual computer**. The d
 
 ## Windows (PowerShell)
 
-Open PowerShell in the downloaded/cloned SystemPulse folder:
+The easiest method is to download the ZIP from GitHub, extract it, and double-click **`start-systempulse.bat`**. It creates the virtual environment, installs dependencies and starts the monitor. Keep the terminal window open.
+
+Manual setup (PowerShell in the project folder):
 
 ```powershell
 py -m venv .venv
@@ -41,6 +43,15 @@ If PowerShell blocks activation, use the direct `.venv\Scripts\python.exe` comma
 
 ## Ubuntu / Linux
 
+The easiest method is to make the launcher executable and run it from the project folder:
+
+```bash
+chmod +x start-systempulse.sh
+./start-systempulse.sh
+```
+
+Manual setup:
+
 ```bash
 sudo apt update
 sudo apt install -y python3 python3-venv python3-pip
@@ -53,6 +64,15 @@ python3 -m venv .venv
 Keep the terminal open while monitoring.
 
 ## macOS
+
+Use the same launcher as Linux:
+
+```bash
+chmod +x start-systempulse.sh
+./start-systempulse.sh
+```
+
+Manual setup:
 
 ```bash
 python3 -m venv .venv
@@ -97,6 +117,15 @@ You can also open http://127.0.0.1:5000 to use the dashboard locally.
 - Cross-origin browser requests are allowed only from the production SystemPulse origin and local dashboard origins by default.
 - The app is read-only and does not provide process-kill or service-control endpoints.
 - The dashboard reads metrics directly from the browser's local monitor. No cloud database or telemetry upload is configured.
+
+## Run automated tests
+
+```bash
+python -m pip install -r requirements.txt
+python -m unittest discover -s tests -v
+```
+
+GitHub Actions also runs these API and CORS checks on pushes to `main` and pull requests.
 
 ## License
 
