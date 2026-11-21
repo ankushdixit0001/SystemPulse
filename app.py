@@ -31,6 +31,14 @@ ALLOWED_ORIGINS = DEFAULT_ALLOWED_ORIGINS | {
 }
 
 
+@app.before_request
+def handle_preflight():
+    # Chromium may send a Private Network Access preflight before an HTTPS
+    # dashboard is allowed to call a loopback HTTP monitor.
+    if request.method == "OPTIONS":
+        return ("", 204)
+
+
 @app.after_request
 def add_local_api_headers(response):
     origin = request.headers.get("Origin", "").rstrip("/")
@@ -38,7 +46,7 @@ def add_local_api_headers(response):
         response.headers["Access-Control-Allow-Origin"] = origin
         response.headers["Vary"] = "Origin"
         response.headers["Access-Control-Allow-Methods"] = "GET, OPTIONS"
-        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Cache-Control, Pragma"
+        response.headers["Access-Control-Allow-Headers"] = request.headers.get("Access-Control-Request-Headers", "Content-Type")
         # Required by Chromium when a public HTTPS page accesses loopback.
         if request.headers.get("Access-Control-Request-Private-Network") == "true":
             response.headers["Access-Control-Allow-Private-Network"] = "true"
