@@ -1,70 +1,102 @@
 # SystemPulse
 
-A small, cross-platform system monitoring dashboard built with Python, Flask, psutil and Chart.js. View CPU, memory and disk usage alongside a searchable list of running processes.
+A cross-platform system monitoring dashboard for **your actual computer**. The dashboard can be opened from the public Vercel website, while a small local Python monitor reads CPU, RAM, disk, uptime and running processes from your own Windows, Ubuntu/Linux or macOS device.
 
-## Features
+## How it works
 
-- Live CPU, RAM and disk utilization
-- Running process list with PID, status, CPU and memory usage
-- Search processes by name or PID
-- Live CPU and memory history chart
-- Basic system details and uptime
-- Read-only monitoring; no process termination or service changes
-- Designed for Windows, Ubuntu/Linux and macOS
+- **Dashboard:** hosted at https://systempulse-mocha.vercel.app
+- **Local monitor:** runs on your computer at `127.0.0.1:5000`
+- The dashboard connects directly from your browser to the local monitor. It does not use Vercel's server metrics as a substitute.
+- The local monitor binds to loopback only; other devices on your network cannot connect to it.
+- Monitoring is read-only. SystemPulse does not terminate processes, change services or upload process data to a cloud database.
+
+> Keep the local monitor running while using the hosted dashboard. If it is stopped, the dashboard shows a disconnected state instead of displaying misleading cloud-server metrics.
 
 ## Requirements
 
 - Python 3.9 or newer
 - pip
-- Internet connection to load the Chart.js and Google Fonts CDN assets (monitoring APIs run locally)
+- Internet access for the hosted dashboard and its Chart.js/Google Fonts assets
 
-## Run on Windows (PowerShell)
+## Windows (PowerShell)
+
+Open PowerShell in the downloaded/cloned SystemPulse folder:
 
 ```powershell
 py -m venv .venv
+.\.venv\Scripts\python.exe -m pip install --upgrade pip
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe app.py
+```
+
+If you prefer activating the environment:
+
+```powershell
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
 python app.py
 ```
 
-If PowerShell blocks virtual-environment activation, use `.\.venv\Scripts\python.exe -m pip install -r requirements.txt` and `.\.venv\Scripts\python.exe app.py` instead.
+If PowerShell blocks activation, use the direct `.venv\Scripts\python.exe` commands above. Keep this terminal window open.
 
-## Run on Ubuntu / Linux
+## Ubuntu / Linux
+
+```bash
+sudo apt update
+sudo apt install -y python3 python3-venv python3-pip
+python3 -m venv .venv
+.venv/bin/python -m pip install --upgrade pip
+.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python app.py
+```
+
+Keep the terminal open while monitoring.
+
+## macOS
 
 ```bash
 python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install -r requirements.txt
-python app.py
+.venv/bin/python -m pip install --upgrade pip
+.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python app.py
 ```
 
-On Ubuntu, install the venv package first if needed: `sudo apt install python3-venv`.
+If macOS does not have Python 3 installed, install Python 3 first, then run the commands above.
 
-## Run on macOS
+## Open the dashboard
 
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install -r requirements.txt
-python app.py
-```
+1. Start the local monitor using the commands for your operating system.
+2. Confirm the terminal says it is running at `http://127.0.0.1:5000`.
+3. Open https://systempulse-mocha.vercel.app in the same computer and browser.
+4. The header should show **Connected** and your computer's hostname.
+5. Leave the Python process running. It refreshes every three seconds.
 
-Open **http://127.0.0.1:5000**. Stop the server with `Ctrl+C`.
+You can also open http://127.0.0.1:5000 to use the dashboard locally.
 
-## API endpoints
+## Troubleshooting
+
+- **Disconnected / retrying:** make sure `python app.py` is still running, then click Retry connection.
+- **Browser permission prompt:** allow the page to access the local network/device if your browser asks.
+- **Connection still fails:** use the current production URL above (not a stale preview URL), restart the local monitor, and refresh the dashboard.
+- **Port 5000 is already in use:** close the other application using that port before starting SystemPulse.
+- **Missing process details:** some operating-system processes are protected. Run with normal user permissions first; elevated permissions may expose more details but are not required for normal use.
+- **Chart not visible:** numeric metrics and process monitoring still work; check that your browser can load the Chart.js CDN.
+
+## API
 
 | Method | Endpoint | Description |
 |---|---|---|
-| GET | `/api/system` | CPU, memory, disk and system details |
+| GET | `/api/health` | Local monitor connection check |
+| GET | `/api/system` | CPU, memory, disk, uptime and device details |
 | GET | `/api/processes` | Current process list |
-| GET | `/api/performance` | Current CPU and memory readings |
+| GET | `/api/performance` | CPU and memory history sample |
 
-## Notes
+## Security and privacy
 
-- The application binds to `127.0.0.1` and is intended for local use.
-- Some process details may be unavailable due to operating-system permissions. Run without administrator/root privileges unless you have a specific reason to do otherwise.
-- Disk usage is reported for the root filesystem on Linux/macOS and the first detected partition on Windows.
-- Chart.js and Google Fonts are loaded from public CDNs. The page and monitoring API run locally.
+- The local server listens only on `127.0.0.1`, not on `0.0.0.0`.
+- Cross-origin browser requests are allowed only from the production SystemPulse origin and local dashboard origins by default.
+- The app is read-only and does not provide process-kill or service-control endpoints.
+- The dashboard reads metrics directly from the browser's local monitor. No cloud database or telemetry upload is configured.
 
 ## License
 
